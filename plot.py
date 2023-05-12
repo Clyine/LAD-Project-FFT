@@ -4,11 +4,11 @@ from matplotlib import style
 from scipy.signal import find_peaks
 import numpy as np
 import random
-import serial
+from serial import Serial
 
 #initialize serial port
-ser = serial.Serial()
-ser.port = 'COM8' #Arduino serial port
+ser = Serial()
+ser.port = 'COM3' #Arduino serial port
 ser.baudrate = 9600
 ser.timeout = 10 #specify timeout when using readline()
 ser.open()

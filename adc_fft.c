@@ -13,30 +13,28 @@
 #include "hardware/dma.h"
 #include "kiss_fftr.h"
 
-#define PWM_COUNTER 1250 //Default clock rate 10Khz (10000)
-#define PWM_DEFAULTS 5000
-
-#define pinENA 8 //PWM_CHAN_A
-#define pinENB 9 //PWM_CHAN_B
-
 // set this to determine sample rate
 // 0     = 500,000 Hz
 // 960   = 50,000 Hz
 // 9600  = 5,000 Hz
-#define CLOCK_DIV 960
-#define FSAMP 50000 //Must be at least 2 times of max freq component of input wave
+// 48000 = 1,000 Hz
+#define CLOCK_DIV 48000
+#define FSAMP 1000 //Must be at least 2 times of max freq component of input wave
 
 // Channel 0 is GPIO26
 #define CAPTURE_CHANNEL 0
 #define LED_PIN 25
 
-// BE CAREFUL: anything over about 9000 here will cause things
+// BE CAREFUL: anything over0 about 9000 here will cause things
 // to silently break. The code will compile and upload, but due
 // to memory issues nothing will work properly
 #define NSAMP 1000
 
+//Frequency Resolution == FSMAP/NSAMP
+//NSMAP set at 1000 for stability
+
 // globals
-dma_channel_config cfg;
+dma_channel_config cfg;   
 uint dma_chan;
 float freqs[NSAMP];
 float powers[NSAMP/2];
@@ -69,10 +67,10 @@ int main() {
     float max_power = 0;
     int max_idx = 0;
     // any frequency bin over NSAMP/2 is aliased (nyquist sampling theorum)
+    // compute fft power for each frequency bins into the powers array
     for (int i = 0; i < NSAMP/2; i++) {
       float power = fft_out[i].r*fft_out[i].r+fft_out[i].i*fft_out[i].i;
       powers[i] = power;
-      //printf("%0.1f,%0.1f\n", freqs[i], power);
       if (power>max_power) {
         max_power=power;
         max_idx = i;
@@ -80,7 +78,8 @@ int main() {
     }
 
     float max_freq = freqs[max_idx];
-    // printf("Greatest Frequency Component: %0.1f Hz\n",max_freq);
+    //printf("Greatest Frequency Component: %0.1f Hz\n",max_freq);
+    //output powers array into serial for processing
     for (int i = 0; i < NSAMP/2; i++) {
       printf("%0.1f: %0.1f,",freqs[i], powers[i]);
     }
@@ -110,14 +109,6 @@ void sample(uint8_t *capture_buf) {
 
 void setup() {
   stdio_init_all();
-
-  // gpio_set_function(pinENA, GPIO_FUNC_PWM);
-  // gpio_set_function(pinENB, GPIO_FUNC_PWM);
-  // pwm_set_wrap(pwm_gpio_to_slice_num(pinENA), PWM_COUNTER);
-  // pwm_set_clkdiv (pwm_gpio_to_slice_num(pinENA), 12500);
-  // pwm_set_chan_level(pwm_gpio_to_slice_num(pinENA), PWM_CHAN_A, (int)(PWM_COUNTER/4));
-  // pwm_set_chan_level(pwm_gpio_to_slice_num(pinENA), PWM_CHAN_B, (int)(PWM_COUNTER/2));
-  // pwm_set_enabled(pwm_gpio_to_slice_num(pinENA), true);
 
   gpio_init(LED_PIN);
   gpio_set_dir(LED_PIN, GPIO_OUT);
